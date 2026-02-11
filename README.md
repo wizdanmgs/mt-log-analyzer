@@ -90,7 +90,7 @@ Or using the compiled binary:
 
 ---
 
-## Filter by Date
+### Filter by Date
 
 ```bash
 log-analyzer --input big_log.txt --date 2024-06-01
@@ -98,7 +98,7 @@ log-analyzer --input big_log.txt --date 2024-06-01
 
 ---
 
-## Filter by Level
+### Filter by Level
 
 ```bash
 log-analyzer --input big_log.txt --level ERROR
@@ -106,7 +106,7 @@ log-analyzer --input big_log.txt --level ERROR
 
 ---
 
-## Set Worker Count
+### Set Worker Count
 
 ```bash
 log-analyzer --input big_log.txt --workers 8
@@ -120,7 +120,7 @@ Number of available CPU cores
 
 ---
 
-## Change Chunk Size
+### Change Chunk Size
 
 Controls how many lines are sent to workers per batch.
 
@@ -132,7 +132,7 @@ Default: `1000`
 
 ---
 
-## Export Summary to CSV
+### Export Summary to CSV
 
 ```bash
 log-analyzer --input big_log.txt --export summary.csv
