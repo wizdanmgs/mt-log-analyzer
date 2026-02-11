@@ -16,6 +16,7 @@ use summary::Summary;
 use worker::worker;
 
 const WORKER_COUNT: usize = 4;
+const CHUNK_SIZE: usize = 1000;
 
 fn main() {
     let file = File::open("app.log").expect("Cannot open log file");
@@ -25,7 +26,7 @@ fn main() {
     let (tx, rx) = mpsc::channel();
     let rx = Arc::new(Mutex::new(rx));
 
-    let date_filter = NaiveDate::from_ymd_opt(2026, 2, 10);
+    let date_filter = NaiveDate::from_ymd_opt(2024, 1, 1);
     let level_filter = None; // Some("ERROR".to_string());
 
     let mut handles = Vec::new();
@@ -40,9 +41,19 @@ fn main() {
         }));
     }
 
-    // Producer: read file line by line
+    // Producer: read file by chunk
+    let mut buffer = Vec::with_capacity(CHUNK_SIZE);
     for line in reader.lines() {
-        tx.send(line.unwrap()).unwrap();
+        buffer.push(line.unwrap());
+
+        if buffer.len() == CHUNK_SIZE {
+            tx.send(buffer).unwrap();
+            buffer = Vec::with_capacity(CHUNK_SIZE);
+        }
+    }
+
+    if !buffer.is_empty() {
+        tx.send(buffer).unwrap();
     }
 
     drop(tx); // Important: close channel

@@ -6,7 +6,7 @@ use crate::parser::parse_line;
 use crate::summary::Summary;
 
 pub fn worker(
-    rx: Arc<Mutex<Receiver<String>>>,
+    rx: Arc<Mutex<Receiver<Vec<String>>>>,
     summary: Arc<Mutex<Summary>>,
     date_filter: Option<NaiveDate>,
     level_filter: Option<String>,
@@ -14,31 +14,34 @@ pub fn worker(
     let mut local_counts: HashMap<String, usize> = HashMap::new();
 
     loop {
-        let line = {
+        let lines = {
             let rx = rx.lock().unwrap();
             rx.recv()
         };
 
-        let line = match line {
+        let lines = match lines {
             Ok(l) => l,
             Err(_) => break,
         };
 
-        if let Some(entry) = parse_line(&line) {
-            if let Some(date) = date_filter
+        for line in lines {
+            if let Some(entry) = parse_line(&line) {
+                if let Some(date) = date_filter
                 && entry.date != date
-            {
-                continue;
-            }
+                {
+                    continue;
+                }
 
-            if let Some(ref level) = level_filter
+                if let Some(ref level) = level_filter
                 && &entry.level != level
-            {
-                continue;
-            }
+                {
+                    continue;
+                }
 
-            *local_counts.entry(entry.level).or_insert(0) += 1;
+                *local_counts.entry(entry.level).or_insert(0) += 1;
+            }
         }
+
     }
 
     // Merge once at the end
