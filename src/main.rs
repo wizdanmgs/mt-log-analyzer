@@ -15,7 +15,7 @@ use export::export_csv;
 use summary::Summary;
 use worker::worker;
 
-const WORKER_COUNT: usize = 4;
+const DEFAULT_WORKER_COUNT: usize = 4;
 const CHUNK_SIZE: usize = 1000;
 
 fn main() {
@@ -30,8 +30,11 @@ fn main() {
     let level_filter = None; // Some("ERROR".to_string());
 
     let mut handles = Vec::new();
+    let worker_count = thread::available_parallelism()
+        .map(|n| n.get())
+        .unwrap_or(DEFAULT_WORKER_COUNT);
 
-    for _ in 0..WORKER_COUNT {
+    for _ in 0..worker_count {
         let rx = Arc::clone(&rx);
         let summary = Arc::clone(&summary);
         let level_filter = level_filter.clone();

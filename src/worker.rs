@@ -1,6 +1,6 @@
 use chrono::NaiveDate;
-use std::sync::{Arc, Mutex, mpsc::Receiver};
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex, mpsc::Receiver};
 
 use crate::parser::parse_line;
 use crate::summary::Summary;
@@ -27,13 +27,13 @@ pub fn worker(
         for line in lines {
             if let Some(entry) = parse_line(&line) {
                 if let Some(date) = date_filter
-                && entry.date != date
+                    && entry.date != date
                 {
                     continue;
                 }
 
                 if let Some(ref level) = level_filter
-                && &entry.level != level
+                    && &entry.level != level
                 {
                     continue;
                 }
@@ -41,7 +41,6 @@ pub fn worker(
                 *local_counts.entry(entry.level).or_insert(0) += 1;
             }
         }
-
     }
 
     // Merge once at the end
