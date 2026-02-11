@@ -56,8 +56,8 @@ Rules:
 Clone the project:
 
 ```bash
-git clone https://github.com/yourname/log-analyzer.git
-cd log-analyzer
+git clone https://github.com/wizdanmgs/mt-log-analyzer
+cd mt-log-analyzer
 ```
 
 Build:
@@ -69,7 +69,7 @@ cargo build --release
 Binary will be located at:
 
 ```
-target/release/log-analyzer
+target/release/mtla
 ```
 
 ---
@@ -79,13 +79,13 @@ target/release/log-analyzer
 ### Basic Run
 
 ```bash
-cargo run -- --input big_log.txt
+cargo run -- --input app.log
 ```
 
 Or using the compiled binary:
 
 ```bash
-./target/release/log-analyzer --input big_log.txt
+./target/release/mtla --input app.log
 ```
 
 ---
@@ -93,7 +93,7 @@ Or using the compiled binary:
 ### Filter by Date
 
 ```bash
-log-analyzer --input big_log.txt --date 2024-06-01
+mtla --input app.log --date 2024-06-01
 ```
 
 ---
@@ -101,7 +101,7 @@ log-analyzer --input big_log.txt --date 2024-06-01
 ### Filter by Level
 
 ```bash
-log-analyzer --input big_log.txt --level ERROR
+mtla --input app.log --level ERROR
 ```
 
 ---
@@ -109,7 +109,7 @@ log-analyzer --input big_log.txt --level ERROR
 ### Set Worker Count
 
 ```bash
-log-analyzer --input big_log.txt --workers 8
+mtla --input app.log --workers 8
 ```
 
 If not specified, it defaults to:
@@ -125,7 +125,7 @@ Number of available CPU cores
 Controls how many lines are sent to workers per batch.
 
 ```bash
-log-analyzer --input big_log.txt --chunk-size 2000
+mtla --input app.log --chunk-size 2000
 ```
 
 Default: `1000`
@@ -135,7 +135,7 @@ Default: `1000`
 ### Export Summary to CSV
 
 ```bash
-log-analyzer --input big_log.txt --export summary.csv
+mtla --input app.log --export summary.csv
 ```
 
 Output format:
