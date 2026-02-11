@@ -1,43 +1,54 @@
-mod export;
+mod cli;
+mod error;
 mod parser;
 mod summary;
 mod worker;
 
 use std::{
     fs::File,
-    io::{BufRead, BufReader},
+    io::{BufRead, BufReader, Write},
     sync::{Arc, Mutex, mpsc},
     thread,
 };
 
 use chrono::NaiveDate;
-use export::export_csv;
+use clap::Parser;
+
+use cli::Cli;
+use error::AppError;
 use summary::Summary;
 use worker::worker;
 
-const DEFAULT_WORKER_COUNT: usize = 4;
-const CHUNK_SIZE: usize = 1000;
+fn main() -> Result<(), AppError> {
+    let cli = Cli::parse();
+    let worker_count = cli.workers.unwrap_or_else(|| {
+        thread::available_parallelism()
+            .map(|n| n.get())
+            .unwrap_or(4)
+    });
 
-fn main() {
-    let file = File::open("app.log").expect("Cannot open log file");
+    let date_filter = if let Some(date_str) = cli.date {
+        Some(NaiveDate::parse_from_str(&date_str, "%Y-%m-%d").map_err(|_| AppError::InvalidDate)?)
+    } else {
+        None
+    };
+
+    let file = File::open(&cli.input)?;
     let reader = BufReader::new(file);
 
-    let summary = Arc::new(Mutex::new(Summary::default()));
-    let (tx, rx) = mpsc::channel();
-    let rx = Arc::new(Mutex::new(rx));
+    // Bounded channel (prevents memory explosion)
+    let (tx, rx) = mpsc::sync_channel::<Vec<String>>(worker_count * 2);
 
-    let date_filter = NaiveDate::from_ymd_opt(2024, 1, 1);
-    let level_filter = None; // Some("ERROR".to_string());
+    let rx = Arc::new(Mutex::new(rx));
+    let summary = Arc::new(Mutex::new(Summary::default()));
 
     let mut handles = Vec::new();
-    let worker_count = thread::available_parallelism()
-        .map(|n| n.get())
-        .unwrap_or(DEFAULT_WORKER_COUNT);
 
     for _ in 0..worker_count {
         let rx = Arc::clone(&rx);
         let summary = Arc::clone(&summary);
-        let level_filter = level_filter.clone();
+        let date_filter = date_filter.clone();
+        let level_filter = cli.level.clone();
 
         handles.push(thread::spawn(move || {
             worker(rx, summary, date_filter, level_filter)
@@ -45,13 +56,14 @@ fn main() {
     }
 
     // Producer: read file by chunk
-    let mut buffer = Vec::with_capacity(CHUNK_SIZE);
-    for line in reader.lines() {
-        buffer.push(line.unwrap());
+    let mut buffer = Vec::with_capacity(cli.chunk_size);
 
-        if buffer.len() == CHUNK_SIZE {
+    for line in reader.lines() {
+        buffer.push(line?);
+
+        if buffer.len() == cli.chunk_size {
             tx.send(buffer).unwrap();
-            buffer = Vec::with_capacity(CHUNK_SIZE);
+            buffer = Vec::with_capacity(cli.chunk_size);
         }
     }
 
@@ -65,12 +77,21 @@ fn main() {
         handle.join().unwrap();
     }
 
-    // Export summary
     let summary = summary.lock().unwrap();
-    println!("Log Summary:");
+
+    println!("=== Log Summary ===");
     for (level, count) in &summary.level_counts {
-        println!("{}: {}", level, count);
+        println!("{level}: {count}");
     }
 
-    export_csv(&summary);
+    if let Some(path) = cli.export {
+        let mut file = File::create(path)?;
+        writeln!(file, "level,count")?;
+
+        for (level, count) in &summary.level_counts {
+            writeln!(file, "{},{}", level, count)?;
+        }
+    }
+
+    Ok(())
 }

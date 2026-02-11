@@ -14,17 +14,17 @@ pub fn worker(
     let mut local_counts: HashMap<String, usize> = HashMap::new();
 
     loop {
-        let lines = {
+        let chunk = {
             let rx = rx.lock().unwrap();
             rx.recv()
         };
 
-        let lines = match lines {
-            Ok(l) => l,
+        let chunk = match chunk {
+            Ok(c) => c,
             Err(_) => break,
         };
 
-        for line in lines {
+        for line in chunk {
             if let Some(entry) = parse_line(&line) {
                 if let Some(date) = date_filter
                     && entry.date != date
@@ -45,7 +45,5 @@ pub fn worker(
 
     // Merge once at the end
     let mut global = summary.lock().unwrap();
-    for (level, count) in local_counts {
-        *global.level_counts.entry(level).or_insert(0) += count;
-    }
+    global.merge(local_counts);
 }
